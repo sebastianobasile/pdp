@@ -112,7 +112,7 @@ Il pannello admin è raggiungibile in due modi:
 - Navigando direttamente su: `https://tuosito.it/pdp/admin.php`
 - Oppure, dalla pagina principale, facendo **doppio clic** sul testo in fondo alla pagina (footer)
 
-**Password admin predefinita:** `Admin2026!`
+**Password admin predefinita:** `Admin`
 
 > 🔴 **IMPORTANTE:** Cambia la password admin prima di mettere il sistema in produzione.
 > Aprire `admin.php`, individuare la riga:
