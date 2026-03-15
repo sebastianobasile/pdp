@@ -328,6 +328,7 @@ function renderMarkdown($s) {
     <div class="no-print" style="text-align:center; margin-top:50px; font-size:11px; color:#94a3b8; user-select:none;"
          ondblclick="window.open('admin.php','_blank')">
         Sviluppo: Sebastiano Basile per il <a href="https://www.3iccapuana.edu.it" target="_blank" style="color:#94a3b8; text-decoration:none;">3° I.C. Capuana-de Amicis</a> © 2026 – <a href="https://www.capuanadeamicis.it" target="_blank" style="color:#64748b; text-decoration:none;">capuanadeamicis.it</a>
+        &nbsp;·&nbsp; v1.0.0 &nbsp;·&nbsp; <a href="https://github.com/sebastianobasile/pdp" target="_blank" style="color:#94a3b8; text-decoration:none;">GitHub</a>
     </div>
 </div>
 
