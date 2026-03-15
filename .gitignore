@@ -1,0 +1,33 @@
+# ── Dati alunni e configurazione (contengono dati sensibili) ──────────────
+database/config.json
+database/*.json
+database/backups/
+
+# Mantieni la struttura delle directory vuote
+!database/.gitkeep
+!database/backups/.gitkeep
+
+# ── Sistemi operativi ──────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Editor e IDE ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── PHP ────────────────────────────────────────────────────────────────────
+*.log
+error_log
+
+# ── Dipendenze (se aggiunte in futuro) ────────────────────────────────────
+vendor/
+node_modules/
