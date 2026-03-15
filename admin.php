@@ -5,7 +5,7 @@
 session_start();
 $db_dir = "database/"; $bk_dir = $db_dir . "backups/";
 $config_file = $db_dir . "config.json";
-$admin_pass = "Admin!";
+$admin_pass = "Admin";
 
 if (isset($_POST['login'])) {
     if ($_POST['pw'] === $admin_pass) $_SESSION['super'] = true;
