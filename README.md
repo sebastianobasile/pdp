@@ -9,6 +9,13 @@
 **Titanium PDP** è uno strumento web leggero per la gestione digitale dei **Piani Didattici Personalizzati (PDP)** nelle scuole italiane. Permette ai docenti di redigere e aggiornare i contenuti disciplinari e agli alunni (o alle famiglie) di consultare e stampare il documento in formato ufficiale, direttamente dal browser.
 
 Sviluppato da **Sebastiano Basile** per il [3° I.C. Capuana-de Amicis](https://www.3iccapuana.edu.it), Avola (SR).
+[superscuola.com](https://www.superscuola.com)
+
+---
+
+[![Contributo volontario](https://img.shields.io/badge/Offrimi_un_caffè_☕-PayPal-blue)](https://paypal.me/superscuola)
+
+Se questo strumento ti è utile, puoi supportarne lo sviluppo con un piccolo contributo volontario. Grazie! ☕
 
 ---
 
