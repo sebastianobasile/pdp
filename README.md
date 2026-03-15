@@ -240,3 +240,5 @@ Per proporre modifiche al codice, aprire una **Pull Request** con una descrizion
 **Sebastiano Basile**
 3° Istituto Comprensivo Capuana-de Amicis — Avola (SR)
 🌐 [www.3iccapuana.edu.it](https://www.3iccapuana.edu.it) · [www.capuanadeamicis.it](https://www.capuanadeamicis.it)
+
+[![Contributo volontario](https://img.shields.io/badge/Offrimi_un_caffè_☕-PayPal-blue)](https://paypal.me/superscuola)
