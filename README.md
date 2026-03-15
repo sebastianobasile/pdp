@@ -66,10 +66,8 @@ titanium-pdp/
 
 ### Installazione su server condiviso (hosting)
 
-1. **Scarica** l'ultima versione dal pulsante verde **"Code → Download ZIP"** su GitHub, oppure clona il repository:
-   ```bash
-   git clone https://github.com/TUO-USERNAME/titanium-pdp.git
-   ```
+1. **Scarica** l'ultima versione dal pulsante verde **"Code → Download ZIP"** su GitHub.
+  
 
 2. **Carica i file** sul tuo server tramite FTP/SFTP nella cartella desiderata (es. `public_html/pdp/`):
    ```
