@@ -1,4 +1,10 @@
-# 📋 PDP — Piano Didattico Personalizzato Multi alunno
+# 📋 Titanium PDP — Piano Didattico Personalizzato
+
+![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue?logo=php)
+![License](https://img.shields.io/badge/Licenza-MIT-green)
+![Version](https://img.shields.io/badge/Versione-1.0.0-orange)
+![GitHub stars](https://img.shields.io/github/stars/sebastianobasile/pdp)
+![GitHub forks](https://img.shields.io/github/forks/sebastianobasile/pdp)
 
 **Titanium PDP** è uno strumento web leggero per la gestione digitale dei **Piani Didattici Personalizzati (PDP)** nelle scuole italiane. Permette ai docenti di redigere e aggiornare i contenuti disciplinari e agli alunni (o alle famiglie) di consultare e stampare il documento in formato ufficiale, direttamente dal browser.
 
