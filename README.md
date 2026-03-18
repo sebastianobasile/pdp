@@ -3,6 +3,7 @@
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue?logo=php)
 ![License](https://img.shields.io/badge/Licenza-MIT-green)
 ![Version](https://img.shields.io/badge/Versione-1.0.0-orange)
+![Scuole italiane](https://img.shields.io/badge/Destinatari-Scuole%20italiane-red)
 ![GitHub stars](https://img.shields.io/github/stars/sebastianobasile/pdp)
 ![GitHub forks](https://img.shields.io/github/forks/sebastianobasile/pdp)
 
