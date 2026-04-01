@@ -1,11 +1,11 @@
 <?php
 /**
- * PDP Admin Panel V3.4
+ * PDP Admin Panel V3.5 — Con PIN per Materia
  */
 session_start();
 $db_dir = "database/"; $bk_dir = $db_dir . "backups/";
 $config_file = $db_dir . "config.json";
-$admin_pass = "Admin";
+$admin_pass = "elisab";
 
 if (isset($_POST['login'])) {
     if ($_POST['pw'] === $admin_pass) $_SESSION['super'] = true;
@@ -35,11 +35,49 @@ if ($is_super && isset($_POST['save_al'])) {
         $nome    = trim($_POST['an']);
         $fname   = strtolower(preg_replace('/\s+/', '_', $nome)) . ".json";
         $titolo  = trim($_POST['atit'] ?? '');
+
+        // ── Gestione PIN per Materia ──────────────────────────────────────
+        $raw_pm       = $_POST['pm'] ?? [];           // array [MATERIA => pin]
+        $existing_pm  = $db['alunni'][$key_old]['pin_materie'] ?? $db['alunni'][$key]['pin_materie'] ?? [];
+        $pin_materie  = [];
+        foreach ($materie as $m) {
+            if (isset($raw_pm[$m])) {
+                $p = trim($raw_pm[$m]);
+                // Se il campo è vuoto e c'era già un PIN, lo conserva
+                // Se il campo è "*" (placeholder), lo conserva
+                if ($p === '__CLEAR__') {
+                    $pin_materie[$m] = ''; // PIN rimosso esplicitamente
+                } elseif ($p === '' || $p === '••••') {
+                    $pin_materie[$m] = $existing_pm[$m] ?? ''; // invariato
+                } else {
+                    $pin_materie[$m] = $p; // nuovo PIN
+                }
+            } else {
+                $pin_materie[$m] = $existing_pm[$m] ?? '';
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────
+
+        // ── Firme per alunno ──────────────────────────────────────────────────
+        $firme_al = [
+            "sf1"  => isset($_POST['asf1'])  ? 1 : 0,
+            "sf2"  => isset($_POST['asf2'])  ? 1 : 0,
+            "al1"  => isset($_POST['aal1'])  ? strip_tags(trim($_POST['aal1']))  : null,
+            "al2"  => isset($_POST['aal2'])  ? strip_tags(trim($_POST['aal2']))  : null,
+            "aft1" => isset($_POST['aaft1']) ? $_POST['aaft1'] : null,
+            "aft2" => isset($_POST['aaft2']) ? $_POST['aaft2'] : null,
+            "an1"  => isset($_POST['aan1'])  ? strip_tags(trim($_POST['aan1']))  : null,
+            "an2"  => isset($_POST['aan2'])  ? strip_tags(trim($_POST['aan2']))  : null,
+        ];
         $record  = ["nome" => $nome, "classe" => trim($_POST['ac']), "file" => $fname,
                     "materie" => $materie, "scadenza" => $_POST['as'], "titolo" => $titolo,
                     "genere" => ($_POST['agenere'] ?? 'M'),
-                    "sf1" => isset($_POST['asf1']) ? 1 : 0,
-                    "sf2" => isset($_POST['asf2']) ? 1 : 0];
+                    "lbl_nome"  => trim($_POST['albl_nome']  ?? ''),
+                    "lbl_gruppo" => trim($_POST['albl_gruppo'] ?? ''),
+                    "sf1" => $firme_al['sf1'],
+                    "sf2" => $firme_al['sf2'],
+                    "firme" => $firme_al,
+                    "pin_materie" => $pin_materie];
         $msg_pw  = '';
         if ($key_old !== '' && $key_old !== $key && isset($db['alunni'][$key_old])) {
             unset($db['alunni'][$key_old]);
@@ -51,11 +89,7 @@ if ($is_super && isset($_POST['save_al'])) {
     }
 }
 
-if ($is_super && isset($_POST['save_glob'])) {
-    $db['settings'] = ["l1" => strip_tags(trim($_POST['l1'])), "l2" => strip_tags(trim($_POST['l2'])), "sf1" => isset($_POST['sf1'])?1:0, "sf2" => isset($_POST['sf2'])?1:0, "ft1" => $_POST['ft1']??'autografa', "ft2" => $_POST['ft2']??'autografa', "n1" => strip_tags(trim($_POST['n1']??'')), "n2" => strip_tags(trim($_POST['n2']??''))];
-    file_put_contents($config_file, json_encode($db, JSON_PRETTY_PRINT));
-    $msg = "Impostazioni firme salvate.";
-}
+// save_glob rimosso: le firme si configurano per-alunno
 
 if ($is_super && isset($_GET['reset_bk'])) {
     $deleted = 0;
@@ -158,10 +192,102 @@ $today = date('Y-m-d');
         @media(max-width:768px){.firme-grid{grid-template-columns:1fr;}.tbl{font-size:12px;}.tbl th,.tbl td{padding:8px 10px;}.backup-row{grid-template-columns:1fr auto;}.backup-time{grid-column:1/-1;}}
 
         /* ── STUDENT CARDS ── */
-        .al-card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-bottom:14px; }
-        .al-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
+        .al-card { background:#fff; border:1px solid var(--border); border-radius:10px; margin-bottom:10px; overflow:hidden; transition: box-shadow .2s; }
+        .al-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.07); }
+
+        .al-card-header {
+            display: flex; align-items: center; gap: 10px;
+            padding: 11px 14px; cursor: pointer;
+            user-select: none; transition: background .15s;
+        }
+        .al-card-header:hover { background: #f8fafc; }
+        .al-card-header .ah-name {
+            font-weight: 700; font-size: 14px; color: var(--p); flex: 1; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .al-card-header .ah-class {
+            font-size: 12px; color: var(--muted); background: #f1f5f9;
+            padding: 2px 8px; border-radius: 5px; flex-shrink: 0;
+        }
+        .al-card-header .ah-pw {
+            display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+        }
+        .al-card-header .ah-pw code {
+            font-size: 12px; background: #f1f5f9; padding: 2px 7px;
+            border-radius: 4px; border: 1px solid var(--border);
+            color: var(--p); font-family: monospace; letter-spacing: 1px;
+            min-width: 70px; display: inline-block; text-align: center;
+            filter: blur(4px); transition: filter .2s; cursor: text;
+        }
+        .al-card-header .ah-pw code.visible { filter: blur(0); }
+        .al-card-header .ah-eye, .al-card-header .ah-copy, .al-card-header .ah-link {
+            background: none; border: 1px solid var(--border); border-radius: 4px;
+            padding: 3px 6px; cursor: pointer; font-size: 13px;
+            color: var(--muted); transition: background .15s, color .15s;
+            line-height: 1.4; flex-shrink: 0;
+        }
+        .al-card-header .ah-eye:hover  { background: #f1f5f9; color: var(--p); }
+        .al-card-header .ah-copy:hover { background: #dbeafe; color: var(--blue); border-color: var(--blue); }
+        .al-card-header .ah-link:hover { background: #dcfce7; color: var(--s);    border-color: var(--s); }
+        .al-card-header .ah-chevron {
+            font-size: 11px; color: var(--muted); flex-shrink: 0;
+            transition: transform .25s; display: inline-block;
+        }
+        .al-card.open .ah-chevron { transform: rotate(180deg); }
+        .al-card-header .ah-pin-count {
+            font-size: 10px; font-weight: 700; background: #fef3c7;
+            color: #92400e; padding: 2px 7px; border-radius: 10px;
+            flex-shrink: 0;
+        }
+
+        .al-card-body {
+            display: none;
+            padding: 0 16px 16px;
+            border-top: 1px solid var(--border);
+            animation: slideDown .2s ease;
+        }
+        .al-card.open .al-card-body { display: block; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .al-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; margin-top: 14px; }
         .al-field { display:flex; flex-direction:column; }
         .al-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:5px; white-space:nowrap; }
+
+        /* ── PIN MATERIE SECTION ── */
+        .pin-section {
+            margin-top: 14px; padding: 14px 16px;
+            background: #fefce8; border: 1px solid #fde68a; border-radius: 8px;
+        }
+        .pin-section-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .04em; color: #92400e; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .pin-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+        .pin-item { display: flex; flex-direction: column; gap: 4px; min-width: 130px; }
+        .pin-item label { font-size: 11px; font-weight: 600; color: var(--muted); }
+        .pin-item .pin-wrap { position: relative; display: flex; align-items: center; }
+        .pin-item .pin-wrap input {
+            flex: 1; padding: 7px 52px 7px 10px;
+            font-family: monospace; font-size: 13px; letter-spacing: 2px;
+        }
+        .pin-item .pin-btns {
+            position: absolute; right: 4px;
+            display: flex; align-items: center; gap: 2px;
+        }
+        .pin-item .pin-btns button {
+            background: none; border: none; cursor: pointer;
+            font-size: 14px; color: #94a3b8; padding: 2px 4px;
+            line-height: 1; border-radius: 3px; transition: color .15s, background .15s;
+        }
+        .pin-item .pin-btns .pin-eye-btn:hover { color: var(--blue); background: #dbeafe; }
+        .pin-item .pin-btns .clear-pin:hover   { color: var(--e);    background: #fee2e2; }
+        .pin-has { border-color: #f59e0b !important; background: #fffbeb !important; }
+        .pin-badge { font-size: 10px; color: #92400e; font-weight: 600; }
+        .pin-badge.active { color: var(--s); }
     </style>
 </head>
 <body>
@@ -204,46 +330,7 @@ $today = date('Y-m-d');
     </div>
     <?php endif; ?>
 
-    <!-- 1. FIRME -->
-    <div class="scard">
-        <div class="scard-head">
-            <div class="icon icon-blue">✍️</div>
-            <div><h3>Configurazione Firme</h3><div class="sub">Testi visualizzati nel pié di pagina del documento stampato</div></div>
-        </div>
-        <div class="scard-body">
-            <form method="post">
-                <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:16px; align-items:end;">
-                    <div>
-                        <div class="field-label"><input type="checkbox" name="sf1" <?php echo @$db['settings']['sf1']?'checked':''; ?>> Firma 1</div>
-                        <input type="text" name="l1" value="<?php echo h(@$db['settings']['l1']); ?>" placeholder="Es. Il Coordinatore di Classe" style="margin-bottom:6px;">
-                        <select name="ft1" id="ft1" onchange="toggleNome(1)" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:12px; color:var(--text);">
-                            <option value="autografa"   <?php echo (@$db['settings']['ft1']==='autografa'  ||!isset($db['settings']['ft1']))?'selected':''; ?>>✍️ Firma autografa</option>
-                            <option value="digitale"    <?php echo (@$db['settings']['ft1']==='digitale'  )?'selected':''; ?>>🖊️ Firma digitale</option>
-                            <option value="sostitutiva" <?php echo (@$db['settings']['ft1']==='sostitutiva')?'selected':''; ?>>📋 Sostitutiva art. 3 c.2 D.Lgs. 39/93</option>
-                        </select>
-                        <div id="nome1-wrap" style="margin-top:6px; <?php echo (@$db['settings']['ft1']==='autografa'||!isset($db['settings']['ft1']))?'display:none':''; ?>">
-                            <input type="text" name="n1" id="n1" value="<?php echo h(@$db['settings']['n1']); ?>" placeholder="Nome e Cognome del firmatario" style="font-size:12px;">
-                        </div>
-                    </div>
-                    <div>
-                        <div class="field-label"><input type="checkbox" name="sf2" <?php echo @$db['settings']['sf2']?'checked':''; ?>> Firma 2</div>
-                        <input type="text" name="l2" value="<?php echo h(@$db['settings']['l2']); ?>" placeholder="Es. Il Dirigente Scolastico" style="margin-bottom:6px;">
-                        <select name="ft2" id="ft2" onchange="toggleNome(2)" style="width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:7px; font-size:12px; color:var(--text);">
-                            <option value="autografa"   <?php echo (@$db['settings']['ft2']==='autografa'  ||!isset($db['settings']['ft2']))?'selected':''; ?>>✍️ Firma autografa</option>
-                            <option value="digitale"    <?php echo (@$db['settings']['ft2']==='digitale'  )?'selected':''; ?>>🖊️ Firma digitale</option>
-                            <option value="sostitutiva" <?php echo (@$db['settings']['ft2']==='sostitutiva')?'selected':''; ?>>📋 Sostitutiva art. 3 c.2 D.Lgs. 39/93</option>
-                        </select>
-                        <div id="nome2-wrap" style="margin-top:6px; <?php echo (@$db['settings']['ft2']==='autografa'||!isset($db['settings']['ft2']))?'display:none':''; ?>">
-                            <input type="text" name="n2" id="n2" value="<?php echo h(@$db['settings']['n2']); ?>" placeholder="Nome e Cognome del firmatario" style="font-size:12px;">
-                        </div>
-                    </div>
-                    <button type="submit" name="save_glob" class="btn btn-blue" style="padding:10px 24px; align-self:end;">💾 Salva</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- 2. ALUNNI -->
+    <!-- 1. ALUNNI -->
     <div class="scard">
         <div class="scard-head">
             <div class="icon icon-green">👥</div>
@@ -262,80 +349,244 @@ $today = date('Y-m-d');
             </div>
 
             <!-- ALUNNI ESISTENTI -->
-            <?php foreach($db['alunni'] as $k => $v):
+            <?php $card_idx = 0; foreach($db['alunni'] as $k => $v):
                 $exp=$v['scadenza']; $days=(strtotime($exp)-strtotime($today))/86400;
                 $bc=$days>30?'b-ok':($days>=0?'b-warn':'b-exp');
-                $bl=$days>30?'● Attivo':($days>=0?'● In scadenza':'● Scaduto');
+                $bl=$days>30?'Attivo':($days>=0?'In scadenza':'Scaduto');
                 $gl=$db['settings'];
+                $pm=$v['pin_materie'] ?? [];
+                $n_pinned = count(array_filter($pm, fn($p) => $p !== ''));
+                $card_id  = 'alcard_' . $card_idx++;
             ?>
             <form method="post">
-            <div class="al-card">
-                <!-- Riga 1: Nome + Titolo + Classe + Genere + Scadenza + badge -->
-                <div class="al-row">
-                    <div class="al-field" style="flex:2; min-width:160px;">
-                        <label class="al-label">Nome Alunno</label>
-                        <input type="text" name="an" value="<?php echo h($v['nome']); ?>">
-                    </div>
-                    <div class="al-field" style="flex:2; min-width:160px;">
-                        <label class="al-label">Titolo documento</label>
-                        <input type="text" name="atit" value="<?php echo h($v['titolo'] ?? ''); ?>" placeholder="PIANO DIDATTICO PERSONALIZZATO">
-                    </div>
-                    <div class="al-field" style="flex:0 0 80px;">
-                        <label class="al-label">Classe</label>
-                        <input type="text" name="ac" value="<?php echo h($v['classe']); ?>">
-                    </div>
-                    <div class="al-field" style="flex:0 0 80px;">
-                        <label class="al-label">Genere</label>
-                        <select name="agenere" style="padding:9px 8px; border:1px solid var(--border); border-radius:7px; font-size:13px; width:100%;">
-                            <option value="M" <?php echo ($v['genere']??'M')==='M'?'selected':''; ?>>M</option>
-                            <option value="F" <?php echo ($v['genere']??'M')==='F'?'selected':''; ?>>F</option>
-                        </select>
-                    </div>
-                    <div class="al-field" style="flex:0 0 150px;">
-                        <label class="al-label">Scadenza</label>
-                        <input type="date" name="as" value="<?php echo h($exp); ?>">
-                        <span class="badge <?php echo $bc; ?>" style="margin-top:4px;"><?php echo $bl; ?></span>
-                    </div>
+            <div class="al-card" id="<?php echo $card_id; ?>">
+
+                <!-- ── Header sempre visibile ─────────────────────────────── -->
+                <div class="al-card-header" onclick="toggleCard('<?php echo $card_id; ?>')" title="Clicca per espandere/chiudere">
+
+                    <span class="ah-name"><?php echo h($v['nome']); ?></span>
+                    <span class="ah-class"><?php echo h($v['classe']); ?></span>
+                    <span class="badge <?php echo $bc; ?>"><?php echo $bl; ?></span>
+
+                    <?php if ($n_pinned > 0): ?>
+                    <span class="ah-pin-count">🔐 <?php echo $n_pinned; ?> PIN</span>
+                    <?php endif; ?>
+
+                    <!-- Password con occhiolino -->
+                    <span class="ah-pw" onclick="event.stopPropagation()">
+                        <code id="pw_<?php echo h($k); ?>"><?php echo h($k); ?></code>
+                        <button type="button" class="ah-eye"
+                                onclick="toggleHeaderPw('pw_<?php echo h($k); ?>', this)"
+                                title="Mostra/nascondi password">👁</button>
+                        <button type="button" class="ah-copy"
+                                onclick="copyPw('<?php echo h($k); ?>')"
+                                title="Copia password">📋</button>
+                        <a  class="ah-link"
+                            href="index.php"
+                            target="_blank"
+                            title="Apri pagina PDP (poi inserire la password)">🔗</a>
+                    </span>
+
+                    <span class="ah-chevron">▼</span>
                 </div>
-                <!-- Riga 2: Password + Materie + Firme + Azioni -->
-                <div class="al-row" style="margin-top:10px;">
-                    <div class="al-field" style="flex:0 0 160px;">
-                        <label class="al-label">Password</label>
-                        <input type="hidden" name="ak_old" value="<?php echo h($k); ?>">
-                        <div class="pw-wrap">
-                            <input type="text" name="ak" value="<?php echo h($k); ?>"
-                                   pattern="[A-Za-z0-9]+" title="Solo lettere e numeri"
-                                   style="font-family:monospace; font-size:13px;">
-                            <button type="button" class="copy-btn" onclick="copyPw('<?php echo h($k); ?>')" title="Copia">📋</button>
+
+                <!-- ── Body collassabile ───────────────────────────────────── -->
+                <div class="al-card-body">
+
+                    <!-- Riga 1: Nome + Titolo + Classe + Genere + Scadenza -->
+                    <div class="al-row">
+                        <div class="al-field" style="flex:2; min-width:160px;">
+                            <label class="al-label">Nome / Identificativo</label>
+                            <input type="text" name="an" value="<?php echo h($v['nome']); ?>">
+                        </div>
+                        <div class="al-field" style="flex:2; min-width:160px;">
+                            <label class="al-label">Titolo documento</label>
+                            <input type="text" name="atit" value="<?php echo h($v['titolo'] ?? ''); ?>" placeholder="PIANO DIDATTICO PERSONALIZZATO">
+                        </div>
+                        <div class="al-field" style="flex:0 0 100px;">
+                            <label class="al-label" title="Sostituisce 'Alunno' nell'intestazione">Etich. nome</label>
+                            <input type="text" name="albl_nome" value="<?php echo h($v['lbl_nome'] ?? ''); ?>" placeholder="Alunno">
+                        </div>
+                        <div class="al-field" style="flex:0 0 100px;">
+                            <label class="al-label" title="Sostituisce 'Classe' nell'intestazione">Etich. gruppo</label>
+                            <input type="text" name="albl_gruppo" value="<?php echo h($v['lbl_gruppo'] ?? ''); ?>" placeholder="Classe">
+                        </div>
+                        <div class="al-field" style="flex:0 0 80px;">
+                            <label class="al-label">Classe</label>
+                            <input type="text" name="ac" value="<?php echo h($v['classe']); ?>">
+                        </div>
+                        <div class="al-field" style="flex:0 0 80px;">
+                            <label class="al-label">Genere</label>
+                            <select name="agenere" style="padding:9px 8px; border:1px solid var(--border); border-radius:7px; font-size:13px; width:100%;">
+                                <option value="M" <?php echo ($v['genere']??'M')==='M'?'selected':''; ?>>M</option>
+                                <option value="F" <?php echo ($v['genere']??'M')==='F'?'selected':''; ?>>F</option>
+                            </select>
+                        </div>
+                        <div class="al-field" style="flex:0 0 150px;">
+                            <label class="al-label">Scadenza</label>
+                            <input type="date" name="as" value="<?php echo h($exp); ?>">
+                            <span class="badge <?php echo $bc; ?>" style="margin-top:4px;">● <?php echo $bl; ?></span>
                         </div>
                     </div>
-                    <div class="al-field" style="flex:3; min-width:200px;">
-                        <label class="al-label">Materie (separate da virgola)</label>
-                        <textarea name="am" rows="2" style="font-size:12px; min-height:unset; resize:vertical;"><?php echo h(implode(', ',$v['materie'])); ?></textarea>
+
+                    <!-- Riga 2: Password + Materie + Firme + Azioni -->
+                    <div class="al-row">
+                        <div class="al-field" style="flex:0 0 160px;">
+                            <label class="al-label">Password</label>
+                            <input type="hidden" name="ak_old" value="<?php echo h($k); ?>">
+                            <div class="pw-wrap">
+                                <input type="text" name="ak" value="<?php echo h($k); ?>"
+                                       pattern="[A-Za-z0-9]+" title="Solo lettere e numeri"
+                                       style="font-family:monospace; font-size:13px;">
+                                <button type="button" class="copy-btn" onclick="copyPw('<?php echo h($k); ?>')" title="Copia">📋</button>
+                            </div>
+                        </div>
+                        <div class="al-field" style="flex:3; min-width:200px;">
+                            <label class="al-label">Materie (separate da virgola)</label>
+                            <textarea name="am" rows="2" style="font-size:12px; min-height:unset; resize:vertical;"><?php echo h(implode(', ',$v['materie'])); ?></textarea>
+                        </div>
+                        <!-- placeholder, firme ora sotto -->
+                        <div style="display:none;"></div>
+                        <div class="al-field" style="flex:0 0 110px; justify-content:flex-end;">
+                            <label class="al-label">&nbsp;</label>
+                            <button type="submit" name="save_al" class="btn btn-save btn-sm" style="width:100%; margin-bottom:5px;">✔ Salva</button>
+                            <a href="?del=<?php echo urlencode($k); ?>" class="btn btn-del btn-sm" style="width:100%; text-align:center;"
+                               onclick="return confirm('Eliminare <?php echo h($v['nome']); ?>?')">✖ Elimina</a>
+                        </div>
                     </div>
-                    <div class="al-field" style="flex:0 0 200px;">
-                        <label class="al-label">Firme nel documento</label>
-                        <?php if(!empty($gl['sf1'])&&!empty($gl['l1'])): ?>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:4px;cursor:pointer;">
-                            <input type="checkbox" name="asf1" <?php echo ($v['sf1']??$gl['sf1'])?'checked':''; ?>>
-                            <span style="color:var(--text)"><?php echo h($gl['l1']); ?></span>
-                        </label>
-                        <?php endif; ?>
-                        <?php if(!empty($gl['sf2'])&&!empty($gl['l2'])): ?>
-                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
-                            <input type="checkbox" name="asf2" <?php echo ($v['sf2']??$gl['sf2'])?'checked':''; ?>>
-                            <span style="color:var(--text)"><?php echo h($gl['l2']); ?></span>
-                        </label>
-                        <?php endif; ?>
+
+                    <!-- ── Sezione PIN per Materia ──────────────────────────── -->
+                    <div class="pin-section">
+                        <div class="pin-section-title">
+                            🔐 PIN per Materia
+                            <?php if ($n_pinned > 0): ?>
+                                <span style="background:#fde68a; padding:2px 8px; border-radius:10px; font-size:10px;">
+                                    <?php echo $n_pinned; ?> materia<?php echo $n_pinned > 1 ? 'e' : ''; ?> con PIN attivo
+                                </span>
+                            <?php else: ?>
+                                <span style="font-weight:400; color:#92400e; font-size:11px; text-transform:none; letter-spacing:0;">
+                                    — nessun PIN impostato, tutte le materie liberamente modificabili
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="pin-grid">
+                            <?php foreach ($v['materie'] as $mat):
+                                $has_pin = isset($pm[$mat]) && $pm[$mat] !== '';
+                                $safe_id = 'pin_' . $k . '_' . preg_replace('/[^A-Za-z0-9]/', '_', $mat);
+                            ?>
+                            <div class="pin-item">
+                                <label for="<?php echo $safe_id; ?>">
+                                    <?php echo h($mat); ?>
+                                    <?php if ($has_pin): ?>
+                                        <span class="pin-badge active">● PIN attivo</span>
+                                    <?php else: ?>
+                                        <span class="pin-badge">○ libera</span>
+                                    <?php endif; ?>
+                                </label>
+                                <div class="pin-wrap">
+                                    <input type="password"
+                                           id="<?php echo $safe_id; ?>"
+                                           name="pm[<?php echo h($mat); ?>]"
+                                           value=""
+                                           placeholder="<?php echo $has_pin ? '••••  (invariato)' : 'Nessun PIN'; ?>"
+                                           autocomplete="new-password"
+                                           class="<?php echo $has_pin ? 'pin-has' : ''; ?>"
+                                           title="<?php echo $has_pin ? 'Lascia vuoto per mantenere il PIN attuale.' : 'Imposta un PIN per bloccare questa materia'; ?>">
+                                    <div class="pin-btns">
+                                        <button type="button" class="pin-eye-btn"
+                                                onclick="togglePinEye('<?php echo $safe_id; ?>', this)"
+                                                title="Mostra/nascondi PIN">👁</button>
+                                        <?php if ($has_pin): ?>
+                                        <button type="button" class="clear-pin"
+                                                onclick="clearPin('<?php echo $safe_id; ?>', this)"
+                                                title="Rimuovi PIN">✕</button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <?php if ($has_pin): ?>
+                                <span style="font-size:10px; color:#92400e;">💡 Vuoto = PIN invariato</span>
+                                <?php endif; ?>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <p style="font-size:11px; color:#92400e; margin-top:10px; opacity:.8;">
+                            ℹ️ Ogni docente inserisce il proprio PIN per sbloccare la materia di competenza. Le materie senza PIN sono modificabili da chiunque acceda al documento.
+                        </p>
                     </div>
-                    <div class="al-field" style="flex:0 0 110px; justify-content:flex-end;">
-                        <label class="al-label">&nbsp;</label>
-                        <button type="submit" name="save_al" class="btn btn-save btn-sm" style="width:100%; margin-bottom:5px;">✔ Salva</button>
-                        <a href="?del=<?php echo urlencode($k); ?>" class="btn btn-del btn-sm" style="width:100%; text-align:center;"
-                           onclick="return confirm('Eliminare <?php echo h($v['nome']); ?>?')">✖ Elimina</a>
+                    <!-- ─────────────────────────────────────────────────────── -->
+
+                    <!-- ── Configurazione Firme per Alunno ─────────────────── -->
+                    <?php
+                    $af  = $v['firme'] ?? [];
+                    // Valori effettivi: usa quelli dell'alunno se presenti, altrimenti fallback ai globali
+                    $a_sf1  = $af['sf1']  ?? $gl['sf1']  ?? 1;
+                    $a_sf2  = $af['sf2']  ?? $gl['sf2']  ?? 1;
+                    $a_l1   = $af['al1']  ?? $gl['l1']   ?? '';
+                    $a_l2   = $af['al2']  ?? $gl['l2']   ?? '';
+                    $a_ft1  = $af['aft1'] ?? $gl['ft1']  ?? 'autografa';
+                    $a_ft2  = $af['aft2'] ?? $gl['ft2']  ?? 'autografa';
+                    $a_n1   = $af['an1']  ?? $gl['n1']   ?? '';
+                    $a_n2   = $af['an2']  ?? $gl['n2']   ?? '';
+                    $fid = 'f_'.preg_replace('/[^A-Za-z0-9]/', '_', $k);
+                    ?>
+                    <div class="pin-section" style="background:#eff6ff; border-color:#bfdbfe; margin-top:14px;">
+                        <div class="pin-section-title" style="color:#1e40af;">
+                            ✍️ Configurazione Firme
+                            <span style="font-weight:400; font-size:11px; text-transform:none; letter-spacing:0; color:#3b82f6;">
+                                — sovrascrive le impostazioni globali per questo alunno
+                            </span>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                            <!-- FIRMA 1 -->
+                            <div>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin-bottom:8px;">
+                                    <input type="checkbox" name="asf1" <?php echo $a_sf1 ? 'checked' : ''; ?>>
+                                    <span>FIRMA 1</span>
+                                </label>
+                                <input type="text" name="aal1" value="<?php echo h($a_l1); ?>"
+                                       placeholder="<?php echo h($gl['l1'] ?? 'Es. Il Coordinatore'); ?>"
+                                       style="margin-bottom:6px; font-size:12px;"
+                                       title="Lascia vuoto per usare il valore globale">
+                                <select name="aaft1" id="<?php echo $fid; ?>_ft1"
+                                        onchange="toggleAlNome('<?php echo $fid; ?>_n1')"
+                                        style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:7px; font-size:12px; color:var(--text); margin-bottom:6px;">
+                                    <option value="autografa"   <?php echo $a_ft1==='autografa'  ?'selected':''; ?>>✍️ Firma autografa</option>
+                                    <option value="digitale"    <?php echo $a_ft1==='digitale'   ?'selected':''; ?>>🖊️ Firma digitale</option>
+                                    <option value="sostitutiva" <?php echo $a_ft1==='sostitutiva'?'selected':''; ?>>📋 Sostitutiva art. 3 c.2 D.Lgs. 39/93</option>
+                                </select>
+                                <div id="<?php echo $fid; ?>_n1" style="<?php echo $a_ft1==='autografa'?'display:none':''; ?>">
+                                    <input type="text" name="aan1" value="<?php echo h($a_n1); ?>"
+                                           placeholder="Nome firmatario" style="font-size:12px;">
+                                </div>
+                            </div>
+                            <!-- FIRMA 2 -->
+                            <div>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin-bottom:8px;">
+                                    <input type="checkbox" name="asf2" <?php echo $a_sf2 ? 'checked' : ''; ?>>
+                                    <span>FIRMA 2</span>
+                                </label>
+                                <input type="text" name="aal2" value="<?php echo h($a_l2); ?>"
+                                       placeholder="<?php echo h($gl['l2'] ?? 'Es. Il Dirigente'); ?>"
+                                       style="margin-bottom:6px; font-size:12px;"
+                                       title="Lascia vuoto per usare il valore globale">
+                                <select name="aaft2" id="<?php echo $fid; ?>_ft2"
+                                        onchange="toggleAlNome('<?php echo $fid; ?>_n2')"
+                                        style="width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:7px; font-size:12px; color:var(--text); margin-bottom:6px;">
+                                    <option value="autografa"   <?php echo $a_ft2==='autografa'  ?'selected':''; ?>>✍️ Firma autografa</option>
+                                    <option value="digitale"    <?php echo $a_ft2==='digitale'   ?'selected':''; ?>>🖊️ Firma digitale</option>
+                                    <option value="sostitutiva" <?php echo $a_ft2==='sostitutiva'?'selected':''; ?>>📋 Sostitutiva art. 3 c.2 D.Lgs. 39/93</option>
+                                </select>
+                                <div id="<?php echo $fid; ?>_n2" style="<?php echo $a_ft2==='autografa'?'display:none':''; ?>">
+                                    <input type="text" name="aan2" value="<?php echo h($a_n2); ?>"
+                                           placeholder="Nome firmatario" style="font-size:12px;">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                    <!-- ─────────────────────────────────────────────────────── -->
+
+                </div><!-- /.al-card-body -->
+            </div><!-- /.al-card -->
             </form>
             <?php endforeach; ?>
 
@@ -345,12 +596,20 @@ $today = date('Y-m-d');
                 <form method="post">
                 <div class="al-row">
                     <div class="al-field" style="flex:2; min-width:160px;">
-                        <label class="al-label">Nome Alunno</label>
+                        <label class="al-label">Nome / Identificativo</label>
                         <input type="text" name="an" placeholder="Nome Cognome" required>
                     </div>
                     <div class="al-field" style="flex:2; min-width:160px;">
                         <label class="al-label">Titolo documento</label>
                         <input type="text" name="atit" placeholder="PIANO DIDATTICO PERSONALIZZATO">
+                    </div>
+                    <div class="al-field" style="flex:0 0 100px;">
+                        <label class="al-label" title="Sostituisce 'Alunno' nell'intestazione">Etich. nome</label>
+                        <input type="text" name="albl_nome" placeholder="Alunno">
+                    </div>
+                    <div class="al-field" style="flex:0 0 100px;">
+                        <label class="al-label" title="Sostituisce 'Classe' nell'intestazione">Etich. gruppo</label>
+                        <input type="text" name="albl_gruppo" placeholder="Classe">
                     </div>
                     <div class="al-field" style="flex:0 0 80px;">
                         <label class="al-label">Classe</label>
@@ -398,12 +657,15 @@ $today = date('Y-m-d');
                         <button type="submit" name="save_al" class="btn btn-create btn-sm" style="width:100%;">＋ Crea</button>
                     </div>
                 </div>
+                <p style="font-size:11px; color:#64748b; margin-top:10px;">
+                    💡 I PIN per materia possono essere impostati dopo aver creato l'alunno, aprendo il pannello di modifica.
+                </p>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- 3. BACKUP -->
+    <!-- 2. BACKUP -->
     <div class="scard">
         <div class="scard-head">
             <div class="icon icon-amber">🗂️</div>
@@ -411,8 +673,7 @@ $today = date('Y-m-d');
             <?php $bk_count = count(glob($bk_dir."*.json") ?: []); if ($bk_count > 0): ?>
             <a href="?reset_bk=1" class="btn btn-del btn-sm"
                style="align-self:center; margin-left:auto;"
-               onclick="return confirm('Eliminare tutti i <?php echo $bk_count; ?> backup?
-Questa operazione non è reversibile.')">
+               onclick="return confirm('Eliminare tutti i <?php echo $bk_count; ?> backup?\nQuesta operazione non è reversibile.')">
                 🗑️ Svuota backup (<?php echo $bk_count; ?>)
             </a>
             <?php endif; ?>
@@ -453,9 +714,56 @@ function toggleNome(n) {
     const v = document.getElementById('ft'+n).value;
     document.getElementById('nome'+n+'-wrap').style.display = (v === 'autografa') ? 'none' : 'block';
 }
+function toggleAlNome(wrapId) {
+    // wrapId è l'id del select; il div nome ha lo stesso id con suffisso già passato
+    // In realtà passiamo direttamente l'id del div nome
+    const sel = event.target;
+    const wrap = document.getElementById(wrapId);
+    if (wrap) wrap.style.display = (sel.value === 'autografa') ? 'none' : 'block';
+}
 function togglePw(id,eyeId){const i=document.getElementById(id),e=document.getElementById(eyeId);i.type=i.type==='password'?'text':'password';e.textContent=i.type==='password'?'👁':'🙈';}
 function copyPw(pw){navigator.clipboard.writeText(pw).then(()=>showToast('Password copiata: '+pw)).catch(()=>prompt('Copia la password:',pw));}
 function showToast(msg){const t=document.createElement('div');t.textContent=msg;Object.assign(t.style,{position:'fixed',bottom:'24px',right:'24px',background:'#1e293b',color:'#fff',padding:'12px 20px',borderRadius:'8px',fontSize:'13px',fontWeight:'600',boxShadow:'0 4px 12px rgba(0,0,0,.2)',zIndex:'9999',opacity:'0',transition:'opacity .25s'});document.body.appendChild(t);requestAnimationFrame(()=>t.style.opacity='1');setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2500);}
+
+// ── Schede collassabili ──────────────────────────────────────────────────
+function toggleCard(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+
+// ── Occhiolino password nell'header ─────────────────────────────────────
+function toggleHeaderPw(codeId, btn) {
+    const el = document.getElementById(codeId);
+    const vis = el.classList.toggle('visible');
+    btn.textContent = vis ? '🙈' : '👁';
+    btn.title = vis ? 'Nascondi password' : 'Mostra password';
+}
+
+// ── Occhiolino PIN per singola materia ───────────────────────────────────
+function togglePinEye(inputId, btn) {
+    const inp = document.getElementById(inputId);
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.textContent = '🙈';
+        btn.title = 'Nascondi PIN';
+    } else {
+        inp.type = 'password';
+        btn.textContent = '👁';
+        btn.title = 'Mostra PIN';
+    }
+}
+
+// ── Rimozione PIN ────────────────────────────────────────────────────────
+function clearPin(inputId, btn) {
+    if (!confirm('Rimuovere il PIN da questa materia? Diventerà liberamente modificabile.')) return;
+    const inp = document.getElementById(inputId);
+    inp.value = '__CLEAR__';
+    inp.type  = 'text';
+    inp.classList.remove('pin-has');
+    inp.placeholder = 'PIN rimosso — salva per confermare';
+    inp.style.borderColor = '#e74c3c';
+    btn.style.display = 'none';
+    showToast('PIN rimosso — clicca Salva per confermare.');
+}
 </script>
 </body>
 </html>
