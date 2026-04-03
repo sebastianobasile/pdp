@@ -1,6 +1,6 @@
 <?php
 /**
- * PDP Admin Panel V3.5 — Con PIN per Materia
+ * PDP V3.6.0 — Con PIN per Materia e promemoria
  */
 session_start();
 $db_dir = "database/"; $bk_dir = $db_dir . "backups/";
@@ -43,14 +43,14 @@ if ($is_super && isset($_POST['save_al'])) {
         foreach ($materie as $m) {
             if (isset($raw_pm[$m])) {
                 $p = trim($raw_pm[$m]);
-                // Se il campo è vuoto e c'era già un PIN, lo conserva
-                // Se il campo è "*" (placeholder), lo conserva
                 if ($p === '__CLEAR__') {
-                    $pin_materie[$m] = ''; // PIN rimosso esplicitamente
-                } elseif ($p === '' || $p === '••••') {
-                    $pin_materie[$m] = $existing_pm[$m] ?? ''; // invariato
+                    $pin_materie[$m] = ''; // PIN rimosso esplicitamente con il tasto ✕
+                } elseif ($p === '') {
+                    // Campo lasciato vuoto: conserva il PIN esistente (se c'era)
+                    $pin_materie[$m] = $existing_pm[$m] ?? '';
                 } else {
-                    $pin_materie[$m] = $p; // nuovo PIN
+                    // Campo contiene il PIN (invariato o modificato): salva così com'è
+                    $pin_materie[$m] = $p;
                 }
             } else {
                 $pin_materie[$m] = $existing_pm[$m] ?? '';
@@ -288,6 +288,96 @@ $today = date('Y-m-d');
         .pin-has { border-color: #f59e0b !important; background: #fffbeb !important; }
         .pin-badge { font-size: 10px; color: #92400e; font-weight: 600; }
         .pin-badge.active { color: var(--s); }
+
+        /* ── MODALE PROMEMORIA PIN ── */
+        .pin-reminder-btn {
+            background: #7c3aed; color: #fff; border: none;
+            border-radius: 5px; padding: 3px 9px; font-size: 12px;
+            font-weight: 700; cursor: pointer; flex-shrink: 0;
+            transition: opacity .15s; line-height: 1.6;
+        }
+        .pin-reminder-btn:hover { opacity: .85; }
+
+        #pinReminderOverlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.5); z-index: 2000;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        #pinReminderOverlay.show { display: flex; }
+        .pr-modal {
+            background: #fff; border-radius: 14px; width: 100%;
+            max-width: 760px; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            display: flex; flex-direction: column;
+        }
+        .pr-modal-head {
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px; position: sticky; top: 0;
+            background: #fff; border-radius: 14px 14px 0 0; z-index: 1;
+        }
+        .pr-modal-head h2 { font-size: 1rem; font-weight: 700; color: var(--p); flex: 1; }
+        .pr-modal-close {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            width: 30px; height: 30px; cursor: pointer; font-size: 16px;
+            display: flex; align-items: center; justify-content: center; color: var(--muted);
+        }
+        .pr-modal-close:hover { background: #f1f5f9; }
+        .pr-modal-body { padding: 22px; }
+
+        /* Tabs */
+        .pr-tabs { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0; }
+        .pr-tab {
+            padding: 8px 16px; font-size: 13px; font-weight: 600;
+            border: none; background: none; cursor: pointer; color: var(--muted);
+            border-bottom: 2px solid transparent; margin-bottom: -2px;
+            transition: color .15s, border-color .15s;
+        }
+        .pr-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+        .pr-tab-content { display: none; }
+        .pr-tab-content.active { display: block; }
+
+        /* Tagliandi */
+        .slip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .slip {
+            border: 2px dashed #94a3b8; border-radius: 8px; padding: 14px 16px;
+            font-size: 12px; background: #fafafa; position: relative;
+        }
+        .slip-mat { font-size: 14px; font-weight: 800; color: var(--p); margin-bottom: 6px; }
+        .slip-row { display: flex; justify-content: space-between; color: var(--muted); margin-bottom: 3px; }
+        .slip-pin { font-family: monospace; font-size: 18px; font-weight: 700; color: #7c3aed;
+                    letter-spacing: 3px; text-align: center; margin: 8px 0;
+                    background: #f3e8ff; border-radius: 6px; padding: 6px 0; }
+        .slip-url { font-size: 10px; color: #64748b; word-break: break-all; margin-top: 6px; }
+        .slip-scissors { position: absolute; top: -10px; right: 10px; font-size: 16px; }
+        .pr-actions { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+
+        /* Text areas per email/WA */
+        .pr-textarea {
+            width: 100%; border: 1px solid var(--border); border-radius: 8px;
+            padding: 14px; font-family: monospace; font-size: 12px;
+            line-height: 1.7; resize: vertical; min-height: 200px;
+            background: #f8fafc; color: var(--text);
+        }
+        .pr-copy-btn {
+            margin-top: 10px; background: var(--blue); color: #fff;
+            border: none; border-radius: 7px; padding: 9px 18px;
+            font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity .15s;
+        }
+        .pr-copy-btn:hover { opacity: .85; }
+
+        /* Stampa tagliandi */
+        @media print {
+            body > *:not(#pinReminderOverlay) { display: none !important; }
+            #pinReminderOverlay { display: block !important; position: static !important;
+                background: none !important; padding: 0 !important; }
+            .pr-modal { box-shadow: none !important; max-height: none !important; border-radius: 0; }
+            .pr-modal-head, .pr-tabs, .pr-tab-content:not(#tab-stampa),
+            .pr-actions, .pr-modal-close { display: none !important; }
+            #tab-stampa { display: block !important; }
+            .slip { border: 1.5px dashed #999; page-break-inside: avoid; background: #fff; }
+            .slip-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        }
     </style>
 </head>
 <body>
@@ -370,6 +460,23 @@ $today = date('Y-m-d');
 
                     <?php if ($n_pinned > 0): ?>
                     <span class="ah-pin-count">🔐 <?php echo $n_pinned; ?> PIN</span>
+                    <button type="button" class="pin-reminder-btn"
+                            onclick="event.stopPropagation(); openPinReminder(<?php
+                                $pr_data = [];
+                                foreach ($v['materie'] as $mat) {
+                                    if (!empty($pm[$mat])) {
+                                        $pr_data[] = ['mat' => $mat, 'pin' => $pm[$mat]];
+                                    }
+                                }
+                                echo h(json_encode([
+                                    'nome'   => $v['nome'],
+                                    'classe' => $v['classe'],
+                                    'pw'     => $k,
+                                    'titolo' => $v['titolo'] ?? 'PDP',
+                                    'pins'   => $pr_data,
+                                ]));
+                            ?>)"
+                            title="Genera promemoria PIN per i docenti">📋 Memo PIN</button>
                     <?php endif; ?>
 
                     <!-- Password con occhiolino -->
@@ -487,7 +594,7 @@ $today = date('Y-m-d');
                                     <input type="password"
                                            id="<?php echo $safe_id; ?>"
                                            name="pm[<?php echo h($mat); ?>]"
-                                           value=""
+                                           value="<?php echo $has_pin ? h($pm[$mat]) : ''; ?>"
                                            placeholder="<?php echo $has_pin ? '••••  (invariato)' : 'Nessun PIN'; ?>"
                                            autocomplete="new-password"
                                            class="<?php echo $has_pin ? 'pin-has' : ''; ?>"
@@ -764,6 +871,167 @@ function clearPin(inputId, btn) {
     btn.style.display = 'none';
     showToast('PIN rimosso — clicca Salva per confermare.');
 }
+</script>
+<!-- ══ MODALE PROMEMORIA PIN ══════════════════════════════════════════════ -->
+<div id="pinReminderOverlay" onclick="if(event.target===this) closePinReminder()">
+    <div class="pr-modal">
+        <div class="pr-modal-head">
+            <span style="font-size:20px;">📋</span>
+            <h2 id="prTitle">Promemoria PIN — Alunno</h2>
+            <button class="pr-modal-close" onclick="closePinReminder()" title="Chiudi">✕</button>
+        </div>
+        <div class="pr-modal-body">
+            <div class="pr-tabs">
+                <button class="pr-tab active" onclick="prTab('stampa',this)">✂️ Tagliandi stampabili</button>
+                <button class="pr-tab" onclick="prTab('email',this)">📧 Email</button>
+                <button class="pr-tab" onclick="prTab('wa',this)">💬 WhatsApp</button>
+            </div>
+
+            <!-- TAB: TAGLIANDI -->
+            <div id="tab-stampa" class="pr-tab-content active">
+                <div class="pr-actions">
+                    <button class="btn btn-blue btn-sm" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+                    <span style="font-size:12px;color:var(--muted);align-self:center;">Stampa e ritaglia lungo le linee tratteggiate</span>
+                </div>
+                <div class="slip-grid" id="prSlipGrid"></div>
+            </div>
+
+            <!-- TAB: EMAIL -->
+            <div id="tab-email" class="pr-tab-content">
+                <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+                    Testo pronto da copiare e incollare nella tua email. Personalizza i destinatari e il mittente.
+                </p>
+                <textarea class="pr-textarea" id="prEmailText" readonly></textarea>
+                <button class="pr-copy-btn" onclick="prCopy('prEmailText','prCopyEmail')" id="prCopyEmail">📋 Copia testo email</button>
+            </div>
+
+            <!-- TAB: WHATSAPP -->
+            <div id="tab-wa" class="pr-tab-content">
+                <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+                    Testo ottimizzato per WhatsApp. Invialo singolarmente a ciascun docente.
+                </p>
+                <div id="prWaCards"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Dati correnti della modale ───────────────────────────────────────────
+let _prCurrent = null;
+
+function openPinReminder(data) {
+    _prCurrent = data;
+    document.getElementById('prTitle').textContent = '📋 Promemoria PIN — ' + data.nome + ' (' + data.classe + ')';
+
+    const url = window.location.origin + window.location.pathname.replace('admin.php','') + 'index.php';
+
+    // ── Tagliandi ──────────────────────────────────────────────────────
+    const grid = document.getElementById('prSlipGrid');
+    grid.innerHTML = '';
+    data.pins.forEach(p => {
+        grid.innerHTML += `
+        <div class="slip">
+            <span class="slip-scissors">✂️</span>
+            <div class="slip-mat">📚 ${p.mat}</div>
+            <div class="slip-row"><span>Alunno:</span><strong>${data.nome}</strong></div>
+            <div class="slip-row"><span>Classe:</span><strong>${data.classe}</strong></div>
+            <div class="slip-row"><span>Documento:</span><strong>${data.titolo}</strong></div>
+            <div class="slip-pin">${p.pin}</div>
+            <div class="slip-row" style="font-size:11px;"><span>Password accesso:</span><code style="font-size:11px;">${data.pw}</code></div>
+            <div class="slip-url">🔗 ${url}</div>
+        </div>`;
+    });
+
+    // ── Email ──────────────────────────────────────────────────────────
+    const pinLines = data.pins.map(p => `  • ${p.mat.padEnd(20,' ')} → PIN: ${p.pin}`).join('\n');
+    const emailText =
+`Oggetto: PIN di accesso al ${data.titolo} — ${data.nome} (${data.classe})
+
+Gentile docente,
+
+di seguito trovate le credenziali per accedere e compilare il documento
+"${data.titolo}" relativo all'alunno ${data.nome} (${data.classe}).
+
+🔗 Link al documento:
+${url}
+
+🔑 Password di accesso: ${data.pw}
+
+🔐 PIN per materia (da inserire per sbloccare il campo di competenza):
+${pinLines}
+
+Le materie senza PIN sono liberamente modificabili dopo l'accesso.
+
+Grazie per la collaborazione.
+Il coordinatore di classe`;
+
+    document.getElementById('prEmailText').value = emailText;
+
+    // ── WhatsApp ───────────────────────────────────────────────────────
+    const waContainer = document.getElementById('prWaCards');
+    waContainer.innerHTML = '';
+    data.pins.forEach(p => {
+        const waText =
+`📚 *${p.mat}* — ${data.nome} (${data.classe})
+
+Ciao! Ti invio le credenziali per compilare il *${data.titolo}*:
+
+🔗 ${url}
+🔑 Password: \`${data.pw}\`
+🔐 PIN ${p.mat}: \`${p.pin}\`
+
+Accedi, inserisci la password, poi clicca sul lucchetto della tua materia e inserisci il PIN. Grazie! 🙏`;
+
+        const safeId = 'wa_' + p.mat.replace(/[^A-Za-z0-9]/g,'_');
+        waContainer.innerHTML += `
+        <div style="margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--p);margin-bottom:6px;">📚 ${p.mat}</div>
+            <textarea class="pr-textarea" id="${safeId}" readonly style="min-height:160px;">${waText}</textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="pr-copy-btn" onclick="prCopy('${safeId}','cpbtn_${safeId}')" id="cpbtn_${safeId}">📋 Copia</button>
+                <a href="https://wa.me/?text=${encodeURIComponent(waText)}" target="_blank"
+                   class="pr-copy-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;background:#25d366;">
+                    💬 Apri WhatsApp
+                </a>
+            </div>
+        </div>`;
+    });
+
+    document.getElementById('pinReminderOverlay').classList.add('show');
+    // Torna sempre alla prima tab
+    prTab('stampa', document.querySelector('.pr-tab'));
+}
+
+function closePinReminder() {
+    document.getElementById('pinReminderOverlay').classList.remove('show');
+}
+
+function prTab(name, btn) {
+    document.querySelectorAll('.pr-tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.pr-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+}
+
+function prCopy(taId, btnId) {
+    const ta = document.getElementById(taId);
+    navigator.clipboard.writeText(ta.value).then(() => {
+        const btn = document.getElementById(btnId);
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copiato!';
+        btn.style.background = 'var(--s)';
+        setTimeout(() => { btn.textContent = orig; btn.style.background = ''; }, 2000);
+    }).catch(() => {
+        ta.select();
+        document.execCommand('copy');
+        showToast('Testo copiato!');
+    });
+}
+
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closePinReminder();
+});
 </script>
 </body>
 </html>
