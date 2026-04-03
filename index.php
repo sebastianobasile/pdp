@@ -1,6 +1,6 @@
 <?php
 /**
- * Titanium PDP V3.5.0 — Con PIN per Materia
+ * Titanium PDP V3.6.0 — Con PIN per Materia e promemoria 
  */
 session_start();
 $db_dir = "database/"; $bk_dir = $db_dir . "backups/";
@@ -383,7 +383,7 @@ function renderMarkdown($s) {
     <?php if ($has_any_pin): ?>
     <div class="no-print" style="background:#fefce8; border:1px solid #fde68a; border-radius:8px; padding:10px 16px; margin-bottom:20px; font-size:12px; color:#854d0e; display:flex; align-items:center; gap:10px;">
         <span style="font-size:16px;">🔐</span>
-        <span>I contenuti di ogni campo sono <strong>visibili a tutti</strong>. Per scrivere o modificare, clicca <em>🔑 Sblocca per modificare</em> e inserisci il PIN.</span>
+        <span>I contenuti sono <strong>visibili a tutti</strong>. Se 🔒 Bloccato, per scrivere o modificare, clicca <em>🔑 Sblocca per modificare</em> e inserisci il PIN.</span>
     </div>
     <?php endif; ?>
     <?php if (!empty($pin_err_msg)): ?>
@@ -560,7 +560,7 @@ function renderMarkdown($s) {
     <div class="no-print" style="text-align:center; margin-top:50px; font-size:11px; color:#94a3b8; user-select:none;"
          ondblclick="window.open('admin.php','_blank')">
         Sviluppo: Sebastiano Basile per il <a href="https://www.3iccapuana.edu.it" target="_blank" style="color:#94a3b8; text-decoration:none;">3° I.C. Capuana-de Amicis</a> © 2026 – <a href="https://www.capuanadeamicis.it" target="_blank" style="color:#64748b; text-decoration:none;">capuanadeamicis.it</a>
-        &nbsp;·&nbsp; v3.5.0 &nbsp;·&nbsp; <a href="https://github.com/sebastianobasile/pdp" target="_blank" style="color:#94a3b8; text-decoration:none;">GitHub</a>
+        &nbsp;·&nbsp; v3.6.0 &nbsp;·&nbsp; <a href="https://github.com/sebastianobasile/pdp" target="_blank" style="color:#94a3b8; text-decoration:none;">GitHub</a>
     </div>
 </div>
 
