@@ -2,7 +2,7 @@
 
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue?logo=php)
 ![License](https://img.shields.io/badge/Licenza-CC%20BY--NC--SA%204.0-blue)
-![Version](https://img.shields.io/badge/Versione-3.5.0-orange)
+![Version](https://img.shields.io/badge/Versione-3.6.0-orange)
 ![Scuole italiane](https://img.shields.io/badge/Destinatari-Scuole%20italiane-red)
 ![GitHub stars](https://img.shields.io/github/stars/sebastianobasile/pdp)
 ![GitHub forks](https://img.shields.io/github/forks/sebastianobasile/pdp)
@@ -30,6 +30,7 @@ Se questo strumento ti è utile, puoi supportarne lo sviluppo con un piccolo con
 - 🛡️ **Pannello amministratore** per la gestione degli alunni e delle impostazioni globali
 - 🔄 **Ripristino backup** con storico completo delle revisioni
 - 📱 Interfaccia responsiva, funzionante su desktop e dispositivi mobili
+- V3.6.0 — Con PIN per Materia e promemoria (3 Aprile 2026)
 
 ---
 
@@ -227,7 +228,7 @@ e sostituisci `'Avola'` con il nome del tuo comune.
 
 ## 📄 Licenza
 
-Distribuito sotto licenza **MIT**. Consulta il file [LICENSE](LICENSE) per i dettagli.
+![License](https://img.shields.io/badge/Licenza-CC%20BY--NC--SA%204.0-blue)
 
 Puoi usare, modificare e ridistribuire questo software liberamente, anche in ambito scolastico istituzionale, **mantenendo l'attribuzione originale**.
 
