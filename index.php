@@ -1,6 +1,6 @@
 <?php
 /**
- * Titanium PDP V3.6.0 — Con PIN per Materia e promemoria 
+ * Titanium PDP V3.6.0 — Con PIN per Materia e promemoria (3 Aprile 2026)
  */
 session_start();
 $db_dir = "database/"; $bk_dir = $db_dir . "backups/";
